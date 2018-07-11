@@ -32,8 +32,8 @@ def preprocess(data, window_size=2):
             if idx >= window_size - 1:
                 # + current date
                 for jdx in range(idx, rows):
-                    tl_exams.append(list(exams[idx - window_size:idx]) + list(exams[jdx]['EXAMDATE']))
-                    tl_labels.append(list(exams[idx, label_cols]))
+                    tl_exams.append(list(exams.loc[idx - window_size:idx]) + list(exams.loc[jdx, 'EXAMDATE']))
+                    tl_labels.append(list(exams.loc[idx, label_cols]))
                 plabels.append(tl_labels)
                 pdata.append(tl_exams)
     return pdata, plabels
@@ -43,3 +43,18 @@ def train(data, labels):
     # fit model
     rf = RandomForestRegressor().fit(data, labels)
     return rf
+
+
+def predict(model, scaler, data, n_pred, window_size):
+    data['EXAMDATE'] = data['EXAMDATE'].apply(pd.to_numeric)
+    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    data = data.select_dtypes(include=numerics).sort_values(by=['EXAMDATE'])
+    data = scaler.transform(data)
+    tl_data = data.loc[-window_size:-1]
+    predictions = []
+    for idx in range(n_pred):
+        last_date = tl_data.loc[-1, 'EXAM_DATE']
+        curr_date = pd.offsets.MonthOffset(idx) + last_date
+        predictions.append(model.predict(list(tl_data) + list(curr_date)))
+    return predictions
+

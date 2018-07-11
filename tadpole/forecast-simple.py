@@ -8,6 +8,7 @@ from tadpole.io import load_tadpole_data, write_submission_table
 from tadpole.validation import get_test_subjects
 from tadpole.submission import create_submission_table
 from tadpole.models.simple import create_prediction
+from tadpole.models.train import preprocess, train, predict
 
 
 # Script requires that TADPOLE_D1_D2.csv is in the parent directory.
@@ -20,6 +21,9 @@ output_file = '../data/TADPOLE_Submission_SummerSchool2018_TeamName1.csv'
 print('Loading data ...')
 LB_table, LB_targets = load_tadpole_data(tadpoleLB1LB2_file)
 
+data, labels = preprocess(LB_table, window_size=2)
+model, scaler = train(data, labels)
+
 print('Generating forecasts ...')
 
 # * Create arrays to contain the 84 monthly forecasts for each LB2 subject
@@ -31,10 +35,11 @@ submission = []
 for rid in lb2_subjects:
     subj_data = LB_table.query('RID == @rid')
     subj_targets = LB_targets.query('RID == @rid')
-
+    subj_forecast = predict(scaler, model, subj_data, n_forecasts, window_size=2)
     # *** Construct example forecasts
-    subj_forecast = create_submission_table([rid], n_forecasts)
-    subj_forecast = create_prediction(subj_data, subj_targets, subj_forecast)
+    #subj_forecast = create_submission_table([rid], n_forecasts)
+    #subj_forecast = model.predict(subj_data, n_forecasts)
+    #subj_forecast = create_prediction(subj_data, subj_targets, subj_forecast)
 
     submission.append(subj_forecast)
 
